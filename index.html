@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="theme-color" content="#000000" />
+<title>Score Counter</title>
+<style>
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    overscroll-behavior: none;
+    touch-action: none;
+    background: #000;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  }
+
+  body {
+    /* prevent pull-to-refresh and bounce on iOS */
+    position: fixed;
+    inset: 0;
+  }
+
+  .app {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    /* small inset so the rounded outer "frame" peeks like the mockup */
+    padding: 8px;
+    gap: 4px;
+  }
+
+  .side {
+    flex: 1;
+    position: relative;
+    border-radius: 18px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.25s ease;
+    cursor: pointer;
+  }
+
+  .side.left  { background: #C07887; }
+  .side.right { background: #739F7F; }
+
+  .side .score {
+    font-weight: 900;
+    color: #fff;
+    font-size: clamp(120px, 38vmin, 360px);
+    line-height: 1;
+    letter-spacing: -0.04em;
+    font-variant-numeric: tabular-nums;
+    transition: transform 0.12s ease;
+    pointer-events: none;
+    text-shadow: 0 2px 24px rgba(0,0,0,0.08);
+  }
+
+  .side.pressed .score {
+    transform: scale(0.94);
+  }
+
+  /* color swatch in corner */
+  .swatch-btn {
+    position: absolute;
+    top: 14px;
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    border: 2px solid rgba(255,255,255,0.55);
+    background: transparent; /* filled inline */
+    cursor: pointer;
+    z-index: 5;
+    transition: transform 0.15s ease;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+  }
+  .swatch-btn:active { transform: scale(0.9); }
+  .side.left  .swatch-btn { left: 14px; }
+  .side.right .swatch-btn { right: 14px; }
+
+  /* center elements */
+  .center-stack {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    pointer-events: none;
+    z-index: 10;
+    padding: 14px 0;
+  }
+
+  .timer {
+    pointer-events: auto;
+    background: #fff;
+    color: #1f2430;
+    border: none;
+    padding: 8px 18px;
+    border-radius: 999px;
+    font-size: 18px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.18);
+    transition: transform 0.1s ease;
+  }
+  .timer:active { transform: scale(0.95); }
+  .timer svg { width: 16px; height: 16px; flex-shrink: 0; }
+  .timer.running .clock-icon circle { stroke: #2a9d6e; }
+  .timer.paused  .clock-icon circle { stroke: #d97a3a; }
+
+  .vs-btn {
+    pointer-events: auto;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: #fff;
+    border: none;
+    color: #1f2430;
+    font-weight: 800;
+    font-size: 16px;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.18);
+    position: relative;
+    transition: transform 0.1s ease;
+  }
+  .vs-btn:active { transform: scale(0.92); }
+  .vs-btn::before,
+  .vs-btn::after {
+    content: "";
+    position: absolute;
+    top: 12px;
+    bottom: 12px;
+    width: 8px;
+    border: 2px solid transparent;
+    pointer-events: none;
+  }
+  .vs-btn::before {
+    left: 6px;
+    border-right: none;
+    border-top-left-radius: 20px;
+    border-bottom-left-radius: 20px;
+    border-color: var(--left-color, #C07887);
+  }
+  .vs-btn::after {
+    right: 6px;
+    border-left: none;
+    border-top-right-radius: 20px;
+    border-bottom-right-radius: 20px;
+    border-color: var(--right-color, #739F7F);
+  }
+
+  /* color picker popover */
+  .popover {
+    position: absolute;
+    top: 52px;
+    background: #fff;
+    border-radius: 14px;
+    padding: 10px;
+    display: none;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    z-index: 20;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+  }
+  .popover.open { display: grid; }
+  .side.left  .popover { left: 14px; }
+  .side.right .popover { right: 14px; }
+
+  .popover .chip {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    border: 2px solid transparent;
+    cursor: pointer;
+    padding: 0;
+    transition: transform 0.1s ease;
+  }
+  .popover .chip:active { transform: scale(0.9); }
+  .popover .chip.active { border-color: #1f2430; }
+
+  /* hint that fades after first interaction */
+  .hint {
+    position: absolute;
+    bottom: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 11px;
+    color: rgba(255,255,255,0.7);
+    pointer-events: none;
+    text-align: center;
+    z-index: 4;
+    transition: opacity 0.4s ease;
+    white-space: nowrap;
+  }
+  .hint.hidden { opacity: 0; }
+
+  /* portrait layout: numbers should still feel big */
+  @media (orientation: portrait) {
+    .side .score { font-size: clamp(140px, 32vmin, 280px); }
+    .timer { font-size: 16px; padding: 7px 14px; }
+    .vs-btn { width: 48px; height: 48px; font-size: 14px; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="side left" id="leftSide">
+    <button class="swatch-btn" id="leftSwatch" aria-label="Change left color"></button>
+    <div class="popover" id="leftPopover" role="menu"></div>
+    <div class="score" id="leftScore">0</div>
+    <div class="hint" id="leftHint">tap +1 · swipe down −1</div>
+  </div>
+
+  <div class="side right" id="rightSide">
+    <button class="swatch-btn" id="rightSwatch" aria-label="Change right color"></button>
+    <div class="popover" id="rightPopover" role="menu"></div>
+    <div class="score" id="rightScore">0</div>
+    <div class="hint" id="rightHint">tap +1 · swipe down −1</div>
+  </div>
+
+  <div class="center-stack">
+    <button class="timer" id="timerBtn" aria-label="Timer">
+      <svg class="clock-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="12" cy="12" r="9" stroke="#1f2430" stroke-width="2"/>
+        <path d="M12 7v5l3 2" stroke="#1f2430" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <span id="timerText">00:00</span>
+    </button>
+    <button class="vs-btn" id="vsBtn" aria-label="Reset both scores">VS</button>
+  </div>
+</div>
+
+<script>
+  const COLORS = [
+    "#C07887", "#CB8569", "#BC9C52",
+    "#739F7F", "#5A9C96", "#6B8EBD",
+    "#957FB2", "#9B758E", "#000000"
+  ];
+
+  const STORAGE_KEY = "scoreCounter.v1";
+
+  // ---------- state ----------
+  const state = {
+    left:  { score: 0, color: "#C07887" },
+    right: { score: 0, color: "#739F7F" },
+    timer: { elapsedMs: 0, running: false, startedAt: null }
+  };
+
+  function loadState() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      if (parsed.left)  Object.assign(state.left,  parsed.left);
+      if (parsed.right) Object.assign(state.right, parsed.right);
+      if (parsed.timer) {
+        state.timer.elapsedMs = parsed.timer.elapsedMs || 0;
+        // never auto-resume on reload — paused state
+        state.timer.running = false;
+        state.timer.startedAt = null;
+      }
+    } catch (e) { /* ignore */ }
+  }
+
+  function saveState() {
+    try {
+      // freeze the current elapsed before saving
+      const snapshot = {
+        left: state.left,
+        right: state.right,
+        timer: { elapsedMs: currentElapsed(), running: false }
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot));
+    } catch (e) { /* ignore */ }
+  }
+
+  // ---------- elements ----------
+  const els = {
+    leftSide:    document.getElementById("leftSide"),
+    rightSide:   document.getElementById("rightSide"),
+    leftScore:   document.getElementById("leftScore"),
+    rightScore:  document.getElementById("rightScore"),
+    leftSwatch:  document.getElementById("leftSwatch"),
+    rightSwatch: document.getElementById("rightSwatch"),
+    leftPop:     document.getElementById("leftPopover"),
+    rightPop:    document.getElementById("rightPopover"),
+    leftHint:    document.getElementById("leftHint"),
+    rightHint:   document.getElementById("rightHint"),
+    timerBtn:    document.getElementById("timerBtn"),
+    timerText:   document.getElementById("timerText"),
+    vsBtn:       document.getElementById("vsBtn"),
+    app:         document.querySelector(".app")
+  };
+
+  // ---------- render ----------
+  function clamp(n) { return Math.max(0, Math.min(99, n)); }
+
+  function render() {
+    els.leftScore.textContent  = state.left.score;
+    els.rightScore.textContent = state.right.score;
+    els.leftSide.style.background  = state.left.color;
+    els.rightSide.style.background = state.right.color;
+    els.leftSwatch.style.background  = state.left.color;
+    els.rightSwatch.style.background = state.right.color;
+    els.app.style.setProperty("--left-color",  state.left.color);
+    els.app.style.setProperty("--right-color", state.right.color);
+    renderPopovers();
+  }
+
+  function renderPopovers() {
+    [["left", els.leftPop], ["right", els.rightPop]].forEach(([side, pop]) => {
+      pop.innerHTML = "";
+      COLORS.forEach(c => {
+        const chip = document.createElement("button");
+        chip.className = "chip" + (state[side].color === c ? " active" : "");
+        chip.style.background = c;
+        chip.setAttribute("aria-label", `Set ${side} color ${c}`);
+        chip.addEventListener("click", (e) => {
+          e.stopPropagation();
+          state[side].color = c;
+          closePopovers();
+          render();
+          saveState();
+        });
+        pop.appendChild(chip);
+      });
+    });
+  }
+
+  // ---------- swipe + tap handling per side ----------
+  function setupSide(side, elSide, elScore) {
+    let pointerStart = null;
+    let moved = false;
+    const SWIPE_THRESHOLD = 40; // px down to trigger −1
+
+    elSide.addEventListener("pointerdown", (e) => {
+      // ignore taps that originate on the swatch button or popover
+      if (e.target.closest(".swatch-btn") || e.target.closest(".popover")) return;
+      pointerStart = { x: e.clientX, y: e.clientY, t: Date.now() };
+      moved = false;
+      elSide.classList.add("pressed");
+    });
+
+    elSide.addEventListener("pointermove", (e) => {
+      if (!pointerStart) return;
+      const dy = e.clientY - pointerStart.y;
+      const dx = e.clientX - pointerStart.x;
+      if (Math.abs(dy) > 8 || Math.abs(dx) > 8) moved = true;
+    });
+
+    function endPointer(e) {
+      if (!pointerStart) return;
+      elSide.classList.remove("pressed");
+      const dy = e.clientY - pointerStart.y;
+      const dx = e.clientX - pointerStart.x;
+      const ax = Math.abs(dx);
+      const ay = Math.abs(dy);
+
+      // swipe down detection — vertical-dominant downward gesture
+      if (dy > SWIPE_THRESHOLD && ay > ax) {
+        state[side].score = clamp(state[side].score - 1);
+        hideHint(side);
+        render();
+        saveState();
+      } else if (!moved) {
+        // a tap
+        state[side].score = clamp(state[side].score + 1);
+        hideHint(side);
+        render();
+        saveState();
+      }
+      pointerStart = null;
+    }
+
+    elSide.addEventListener("pointerup", endPointer);
+    elSide.addEventListener("pointercancel", () => {
+      pointerStart = null;
+      elSide.classList.remove("pressed");
+    });
+  }
+
+  function hideHint(side) {
+    const el = side === "left" ? els.leftHint : els.rightHint;
+    el.classList.add("hidden");
+  }
+
+  setupSide("left",  els.leftSide,  els.leftScore);
+  setupSide("right", els.rightSide, els.rightScore);
+
+  // ---------- swatch popovers ----------
+  function closePopovers() {
+    els.leftPop.classList.remove("open");
+    els.rightPop.classList.remove("open");
+  }
+
+  els.leftSwatch.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const wasOpen = els.leftPop.classList.contains("open");
+    closePopovers();
+    if (!wasOpen) els.leftPop.classList.add("open");
+  });
+  els.rightSwatch.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const wasOpen = els.rightPop.classList.contains("open");
+    closePopovers();
+    if (!wasOpen) els.rightPop.classList.add("open");
+  });
+  // stop pointerdown on the swatch from triggering the side's tap logic
+  els.leftSwatch.addEventListener("pointerdown",  (e) => e.stopPropagation());
+  els.rightSwatch.addEventListener("pointerdown", (e) => e.stopPropagation());
+  els.leftPop.addEventListener("pointerdown",  (e) => e.stopPropagation());
+  els.rightPop.addEventListener("pointerdown", (e) => e.stopPropagation());
+
+  document.addEventListener("click", (e) => {
+    if (!e.target.closest(".popover") && !e.target.closest(".swatch-btn")) {
+      closePopovers();
+    }
+  });
+
+  // ---------- VS reset ----------
+  els.vsBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    state.left.score = 0;
+    state.right.score = 0;
+    render();
+    saveState();
+  });
+  els.vsBtn.addEventListener("pointerdown", (e) => e.stopPropagation());
+
+  // ---------- timer ----------
+  // single click vs double click handling
+  let clickTimer = null;
+  const DOUBLE_CLICK_DELAY = 260;
+
+  els.timerBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    if (clickTimer) {
+      // second click within window — treat as double click: reset
+      clearTimeout(clickTimer);
+      clickTimer = null;
+      resetTimer();
+    } else {
+      clickTimer = setTimeout(() => {
+        clickTimer = null;
+        toggleTimer();
+      }, DOUBLE_CLICK_DELAY);
+    }
+  });
+  els.timerBtn.addEventListener("pointerdown", (e) => e.stopPropagation());
+
+  function currentElapsed() {
+    if (state.timer.running && state.timer.startedAt != null) {
+      return state.timer.elapsedMs + (Date.now() - state.timer.startedAt);
+    }
+    return state.timer.elapsedMs;
+  }
+
+  function toggleTimer() {
+    if (state.timer.running) {
+      // pause
+      state.timer.elapsedMs += Date.now() - state.timer.startedAt;
+      state.timer.startedAt = null;
+      state.timer.running = false;
+      els.timerBtn.classList.remove("running");
+      els.timerBtn.classList.add("paused");
+    } else {
+      // start or resume
+      state.timer.startedAt = Date.now();
+      state.timer.running = true;
+      els.timerBtn.classList.add("running");
+      els.timerBtn.classList.remove("paused");
+    }
+    saveState();
+  }
+
+  function resetTimer() {
+    state.timer.elapsedMs = 0;
+    state.timer.startedAt = null;
+    state.timer.running = false;
+    els.timerBtn.classList.remove("running", "paused");
+    renderTimer();
+    saveState();
+  }
+
+  function renderTimer() {
+    const ms = currentElapsed();
+    const totalSec = Math.floor(ms / 1000);
+    const mm = String(Math.floor(totalSec / 60)).padStart(2, "0");
+    const ss = String(totalSec % 60).padStart(2, "0");
+    // cap displayed minutes at 99 to keep the layout stable; still tracks underneath
+    const displayMm = totalSec >= 60 * 100 ? "99" : mm;
+    els.timerText.textContent = `${displayMm}:${ss}`;
+  }
+
+  setInterval(renderTimer, 250);
+
+  // ---------- prevent context menu on long-press ----------
+  document.addEventListener("contextmenu", (e) => e.preventDefault());
+
+  // ---------- prevent double-tap zoom on iOS ----------
+  let lastTouchEnd = 0;
+  document.addEventListener("touchend", (e) => {
+    const now = Date.now();
+    if (now - lastTouchEnd <= 300) e.preventDefault();
+    lastTouchEnd = now;
+  }, { passive: false });
+
+  // ---------- save on hide / before unload ----------
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) saveState();
+  });
+  window.addEventListener("beforeunload", saveState);
+
+  // ---------- boot ----------
+  loadState();
+  render();
+  renderTimer();
+</script>
+</body>
+</html>
