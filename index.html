@@ -29,7 +29,6 @@
   }
 
   body {
-    /* prevent pull-to-refresh and bounce on iOS */
     position: fixed;
     inset: 0;
   }
@@ -38,9 +37,22 @@
     position: fixed;
     inset: 0;
     display: flex;
-    /* small inset so the rounded outer "frame" peeks like the mockup */
     padding: 8px;
     gap: 4px;
+    transition: transform 0.3s ease;
+    transform-origin: center center;
+  }
+
+  /* CSS-rotation fallback for iOS portrait when fullscreen API isn't available */
+  body.force-landscape .app {
+    transform: rotate(90deg);
+    width: 100vh;
+    height: 100vw;
+    top: 50%;
+    left: 50%;
+    margin-top: calc(-50vw);
+    margin-left: calc(-50vh);
+    inset: auto;
   }
 
   .side {
@@ -74,41 +86,41 @@
     transform: scale(0.94);
   }
 
-  /* color swatch in corner */
+  /* color swatch in corner — bigger now */
   .swatch-btn {
     position: absolute;
     top: 14px;
-    width: 28px;
-    height: 28px;
-    border-radius: 8px;
-    border: 2px solid rgba(255,255,255,0.55);
-    background: transparent; /* filled inline */
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    border: 3px solid rgba(255,255,255,0.65);
+    background: transparent;
     cursor: pointer;
     z-index: 5;
     transition: transform 0.15s ease;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.18);
   }
-  .swatch-btn:active { transform: scale(0.9); }
+  .swatch-btn:active { transform: scale(0.92); }
   .side.left  .swatch-btn { left: 14px; }
   .side.right .swatch-btn { right: 14px; }
 
-  /* center elements */
+  /* center elements — VS centered vertically, timer pinned at top */
   .center-stack {
     position: absolute;
     top: 0;
     left: 50%;
     transform: translateX(-50%);
     height: 100%;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: space-between;
+    width: 80px;
     pointer-events: none;
     z-index: 10;
-    padding: 14px 0;
   }
 
   .timer {
+    position: absolute;
+    top: 14px;
+    left: 50%;
+    transform: translateX(-50%);
     pointer-events: auto;
     background: #fff;
     color: #1f2430;
@@ -124,13 +136,18 @@
     cursor: pointer;
     box-shadow: 0 4px 14px rgba(0,0,0,0.18);
     transition: transform 0.1s ease;
+    white-space: nowrap;
   }
-  .timer:active { transform: scale(0.95); }
+  .timer:active { transform: translateX(-50%) scale(0.95); }
   .timer svg { width: 16px; height: 16px; flex-shrink: 0; }
   .timer.running .clock-icon circle { stroke: #2a9d6e; }
   .timer.paused  .clock-icon circle { stroke: #d97a3a; }
 
   .vs-btn {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
     pointer-events: auto;
     width: 56px;
     height: 56px;
@@ -146,10 +163,9 @@
     align-items: center;
     justify-content: center;
     box-shadow: 0 4px 14px rgba(0,0,0,0.18);
-    position: relative;
     transition: transform 0.1s ease;
   }
-  .vs-btn:active { transform: scale(0.92); }
+  .vs-btn:active { transform: translate(-50%, -50%) scale(0.92); }
   .vs-btn::before,
   .vs-btn::after {
     content: "";
@@ -175,16 +191,16 @@
     border-color: var(--right-color, #739F7F);
   }
 
-  /* color picker popover */
+  /* color picker popover — bigger chips */
   .popover {
     position: absolute;
-    top: 52px;
+    top: 68px;
     background: #fff;
-    border-radius: 14px;
-    padding: 10px;
+    border-radius: 16px;
+    padding: 12px;
     display: none;
     grid-template-columns: repeat(3, 1fr);
-    gap: 8px;
+    gap: 10px;
     z-index: 20;
     box-shadow: 0 8px 24px rgba(0,0,0,0.25);
   }
@@ -193,10 +209,10 @@
   .side.right .popover { right: 14px; }
 
   .popover .chip {
-    width: 32px;
-    height: 32px;
-    border-radius: 8px;
-    border: 2px solid transparent;
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    border: 3px solid transparent;
     cursor: pointer;
     padding: 0;
     transition: transform 0.1s ease;
@@ -204,7 +220,35 @@
   .popover .chip:active { transform: scale(0.9); }
   .popover .chip.active { border-color: #1f2430; }
 
-  /* hint that fades after first interaction */
+  /* fullscreen button — only on portrait mobile */
+  .fs-btn {
+    position: fixed;
+    bottom: 18px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 30;
+    background: rgba(255,255,255,0.95);
+    color: #1f2430;
+    border: none;
+    padding: 12px 22px;
+    border-radius: 999px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    display: none;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.25);
+    transition: transform 0.1s ease;
+  }
+  .fs-btn:active { transform: translateX(-50%) scale(0.95); }
+  .fs-btn svg { width: 16px; height: 16px; }
+
+  @media (orientation: portrait) {
+    body:not(.force-landscape) .fs-btn { display: inline-flex; }
+  }
+
+  /* hint */
   .hint {
     position: absolute;
     bottom: 10px;
@@ -220,11 +264,11 @@
   }
   .hint.hidden { opacity: 0; }
 
-  /* portrait layout: numbers should still feel big */
   @media (orientation: portrait) {
-    .side .score { font-size: clamp(140px, 32vmin, 280px); }
-    .timer { font-size: 16px; padding: 7px 14px; }
-    .vs-btn { width: 48px; height: 48px; font-size: 14px; }
+    body:not(.force-landscape) .side .score { font-size: clamp(140px, 32vmin, 280px); }
+    body:not(.force-landscape) .timer { font-size: 16px; padding: 7px 14px; }
+    body:not(.force-landscape) .vs-btn { width: 48px; height: 48px; font-size: 14px; }
+    body:not(.force-landscape) .swatch-btn { width: 40px; height: 40px; }
   }
 </style>
 </head>
@@ -256,6 +300,13 @@
   </div>
 </div>
 
+<button class="fs-btn" id="fsBtn" aria-label="Enter fullscreen landscape">
+  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" stroke="#1f2430" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  </svg>
+  <span>Fullscreen</span>
+</button>
+
 <script>
   const COLORS = [
     "#C07887", "#CB8569", "#BC9C52",
@@ -265,7 +316,6 @@
 
   const STORAGE_KEY = "scoreCounter.v1";
 
-  // ---------- state ----------
   const state = {
     left:  { score: 0, color: "#C07887" },
     right: { score: 0, color: "#739F7F" },
@@ -281,26 +331,23 @@
       if (parsed.right) Object.assign(state.right, parsed.right);
       if (parsed.timer) {
         state.timer.elapsedMs = parsed.timer.elapsedMs || 0;
-        // never auto-resume on reload — paused state
         state.timer.running = false;
         state.timer.startedAt = null;
       }
-    } catch (e) { /* ignore */ }
+    } catch (e) {}
   }
 
   function saveState() {
     try {
-      // freeze the current elapsed before saving
       const snapshot = {
         left: state.left,
         right: state.right,
         timer: { elapsedMs: currentElapsed(), running: false }
       };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot));
-    } catch (e) { /* ignore */ }
+    } catch (e) {}
   }
 
-  // ---------- elements ----------
   const els = {
     leftSide:    document.getElementById("leftSide"),
     rightSide:   document.getElementById("rightSide"),
@@ -315,10 +362,10 @@
     timerBtn:    document.getElementById("timerBtn"),
     timerText:   document.getElementById("timerText"),
     vsBtn:       document.getElementById("vsBtn"),
+    fsBtn:       document.getElementById("fsBtn"),
     app:         document.querySelector(".app")
   };
 
-  // ---------- render ----------
   function clamp(n) { return Math.max(0, Math.min(99, n)); }
 
   function render() {
@@ -353,14 +400,13 @@
     });
   }
 
-  // ---------- swipe + tap handling per side ----------
-  function setupSide(side, elSide, elScore) {
+  // ---------- side tap + swipe ----------
+  function setupSide(side, elSide) {
     let pointerStart = null;
     let moved = false;
-    const SWIPE_THRESHOLD = 40; // px down to trigger −1
+    const SWIPE_THRESHOLD = 40;
 
     elSide.addEventListener("pointerdown", (e) => {
-      // ignore taps that originate on the swatch button or popover
       if (e.target.closest(".swatch-btn") || e.target.closest(".popover")) return;
       pointerStart = { x: e.clientX, y: e.clientY, t: Date.now() };
       moved = false;
@@ -382,14 +428,12 @@
       const ax = Math.abs(dx);
       const ay = Math.abs(dy);
 
-      // swipe down detection — vertical-dominant downward gesture
       if (dy > SWIPE_THRESHOLD && ay > ax) {
         state[side].score = clamp(state[side].score - 1);
         hideHint(side);
         render();
         saveState();
       } else if (!moved) {
-        // a tap
         state[side].score = clamp(state[side].score + 1);
         hideHint(side);
         render();
@@ -406,12 +450,11 @@
   }
 
   function hideHint(side) {
-    const el = side === "left" ? els.leftHint : els.rightHint;
-    el.classList.add("hidden");
+    (side === "left" ? els.leftHint : els.rightHint).classList.add("hidden");
   }
 
-  setupSide("left",  els.leftSide,  els.leftScore);
-  setupSide("right", els.rightSide, els.rightScore);
+  setupSide("left",  els.leftSide);
+  setupSide("right", els.rightSide);
 
   // ---------- swatch popovers ----------
   function closePopovers() {
@@ -431,7 +474,6 @@
     closePopovers();
     if (!wasOpen) els.rightPop.classList.add("open");
   });
-  // stop pointerdown on the swatch from triggering the side's tap logic
   els.leftSwatch.addEventListener("pointerdown",  (e) => e.stopPropagation());
   els.rightSwatch.addEventListener("pointerdown", (e) => e.stopPropagation());
   els.leftPop.addEventListener("pointerdown",  (e) => e.stopPropagation());
@@ -453,26 +495,35 @@
   });
   els.vsBtn.addEventListener("pointerdown", (e) => e.stopPropagation());
 
-  // ---------- timer ----------
-  // single click vs double click handling
-  let clickTimer = null;
-  const DOUBLE_CLICK_DELAY = 260;
+  // ---------- timer — instant single-tap, true double-tap to reset ----------
+  // Strategy: act on every pointerdown immediately. If a second pointerdown
+  // lands within DOUBLE_TAP_MS, undo the toggle the first tap made and reset.
+  const DOUBLE_TAP_MS = 320;
+  let lastTapTime = 0;
+  let lastToggleResult = null; // true = we just started, false = we just paused
 
-  els.timerBtn.addEventListener("click", (e) => {
+  els.timerBtn.addEventListener("pointerdown", (e) => {
     e.stopPropagation();
-    if (clickTimer) {
-      // second click within window — treat as double click: reset
-      clearTimeout(clickTimer);
-      clickTimer = null;
+    e.preventDefault();
+    const now = Date.now();
+    if (now - lastTapTime < DOUBLE_TAP_MS) {
+      // second tap inside window → it's a double-tap
+      undoLastToggle();
       resetTimer();
+      lastTapTime = 0;
+      lastToggleResult = null;
     } else {
-      clickTimer = setTimeout(() => {
-        clickTimer = null;
-        toggleTimer();
-      }, DOUBLE_CLICK_DELAY);
+      // single tap → toggle immediately, no waiting
+      lastToggleResult = toggleTimer();
+      lastTapTime = now;
     }
   });
-  els.timerBtn.addEventListener("pointerdown", (e) => e.stopPropagation());
+
+  // suppress the click event so it doesn't double-fire after pointerdown
+  els.timerBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    e.preventDefault();
+  });
 
   function currentElapsed() {
     if (state.timer.running && state.timer.startedAt != null) {
@@ -489,14 +540,27 @@
       state.timer.running = false;
       els.timerBtn.classList.remove("running");
       els.timerBtn.classList.add("paused");
+      saveState();
+      return false;
     } else {
-      // start or resume
+      // start / resume
       state.timer.startedAt = Date.now();
       state.timer.running = true;
       els.timerBtn.classList.add("running");
       els.timerBtn.classList.remove("paused");
+      return true;
     }
-    saveState();
+  }
+
+  function undoLastToggle() {
+    // reverse the toggle the first tap of a double-tap just performed
+    if (lastToggleResult === true) {
+      // we just started — undo by un-starting
+      state.timer.startedAt = null;
+      state.timer.running = false;
+    } else if (lastToggleResult === false) {
+      // we just paused — resetTimer will wipe everything anyway, no need to undo
+    }
   }
 
   function resetTimer() {
@@ -513,17 +577,95 @@
     const totalSec = Math.floor(ms / 1000);
     const mm = String(Math.floor(totalSec / 60)).padStart(2, "0");
     const ss = String(totalSec % 60).padStart(2, "0");
-    // cap displayed minutes at 99 to keep the layout stable; still tracks underneath
     const displayMm = totalSec >= 60 * 100 ? "99" : mm;
     els.timerText.textContent = `${displayMm}:${ss}`;
   }
 
   setInterval(renderTimer, 250);
 
-  // ---------- prevent context menu on long-press ----------
+  // ---------- fullscreen + landscape ----------
+  function isPortrait() {
+    return window.matchMedia("(orientation: portrait)").matches;
+  }
+
+  async function enterFullscreenLandscape() {
+    const docEl = document.documentElement;
+
+    // try real fullscreen first
+    try {
+      if (docEl.requestFullscreen) {
+        await docEl.requestFullscreen();
+      } else if (docEl.webkitRequestFullscreen) {
+        await docEl.webkitRequestFullscreen();
+      }
+    } catch (e) {
+      // ignore — we'll still try the CSS fallback
+    }
+
+    // try to lock orientation (Android Chrome supports, iOS does not)
+    let lockWorked = false;
+    try {
+      if (screen.orientation && screen.orientation.lock) {
+        await screen.orientation.lock("landscape");
+        lockWorked = true;
+      }
+    } catch (e) {
+      lockWorked = false;
+    }
+
+    // if orientation lock failed and we're still portrait, rotate via CSS
+    if (!lockWorked && isPortrait()) {
+      document.body.classList.add("force-landscape");
+    }
+
+    updateFsButton();
+  }
+
+  function exitFullscreenLandscape() {
+    if (document.fullscreenElement && document.exitFullscreen) {
+      document.exitFullscreen().catch(() => {});
+    } else if (document.webkitFullscreenElement && document.webkitExitFullscreen) {
+      document.webkitExitFullscreen();
+    }
+    try {
+      if (screen.orientation && screen.orientation.unlock) {
+        screen.orientation.unlock();
+      }
+    } catch (e) {}
+    document.body.classList.remove("force-landscape");
+    updateFsButton();
+  }
+
+  function isFullscreenish() {
+    return !!(document.fullscreenElement || document.webkitFullscreenElement) ||
+           document.body.classList.contains("force-landscape");
+  }
+
+  function updateFsButton() {
+    const fsLabel = els.fsBtn.querySelector("span");
+    fsLabel.textContent = isFullscreenish() ? "Exit" : "Fullscreen";
+  }
+
+  els.fsBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    if (isFullscreenish()) exitFullscreenLandscape();
+    else enterFullscreenLandscape();
+  });
+
+  document.addEventListener("fullscreenchange", updateFsButton);
+  document.addEventListener("webkitfullscreenchange", updateFsButton);
+
+  // if device rotates to landscape naturally, drop the CSS rotation
+  window.addEventListener("resize", () => {
+    if (!isPortrait() && document.body.classList.contains("force-landscape")) {
+      document.body.classList.remove("force-landscape");
+      updateFsButton();
+    }
+  });
+
+  // ---------- misc ----------
   document.addEventListener("contextmenu", (e) => e.preventDefault());
 
-  // ---------- prevent double-tap zoom on iOS ----------
   let lastTouchEnd = 0;
   document.addEventListener("touchend", (e) => {
     const now = Date.now();
@@ -531,16 +673,15 @@
     lastTouchEnd = now;
   }, { passive: false });
 
-  // ---------- save on hide / before unload ----------
   document.addEventListener("visibilitychange", () => {
     if (document.hidden) saveState();
   });
   window.addEventListener("beforeunload", saveState);
 
-  // ---------- boot ----------
   loadState();
   render();
   renderTimer();
+  updateFsButton();
 </script>
 </body>
 </html>
