@@ -1,7 +1,7 @@
 {
-  "name": "Score Counter",
-  "short_name": "Score",
-  "description": "Two-player score counter with timer",
+  "name": "Unreal Score",
+  "short_name": "UScore",
+  "description": "Unreal Score - Os 3 amigos",
   "start_url": "./",
   "scope": "./",
   "display": "fullscreen",
