@@ -61,8 +61,6 @@
     transform-origin: center center;
   }
 
-  /* CSS-rotation fallback removed — iOS users get a "rotate your phone" hint instead */
-
   .side {
     flex: 1;
     position: relative;
@@ -148,8 +146,10 @@
   }
   .timer:active { transform: translateX(-50%) scale(0.95); }
   .timer svg { width: 16px; height: 16px; flex-shrink: 0; }
-  .timer.running .clock-icon circle { stroke: #2a9d6e; }
-  .timer.paused  .clock-icon circle { stroke: #d97a3a; }
+  .timer.running .clock-icon circle,
+  .timer.running .clock-icon path { stroke: #2a9d6e; }
+  .timer.paused  .clock-icon circle,
+  .timer.paused  .clock-icon path { stroke: #d97a3a; }
 
   .vs-btn {
     position: absolute;
@@ -228,22 +228,6 @@
   .popover .chip:active { transform: scale(0.9); }
   .popover .chip.active { border-color: #1f2430; }
 
-  /* hint */
-  .hint {
-    position: absolute;
-    bottom: 10px;
-    left: 50%;
-    transform: translateX(-50%);
-    font-size: 11px;
-    color: rgba(255,255,255,0.7);
-    pointer-events: none;
-    text-align: center;
-    z-index: 4;
-    transition: opacity 0.4s ease;
-    white-space: nowrap;
-  }
-  .hint.hidden { opacity: 0; }
-
   @media (orientation: portrait) {
     .side .score { font-size: clamp(140px, 32vmin, 280px); }
     .timer { font-size: 16px; padding: 7px 14px; }
@@ -258,14 +242,12 @@
     <button class="swatch-btn" id="leftSwatch" aria-label="Change left color"></button>
     <div class="popover" id="leftPopover" role="menu"></div>
     <div class="score" id="leftScore">0</div>
-    <div class="hint" id="leftHint">tap +1 · swipe down −1</div>
   </div>
 
   <div class="side right" id="rightSide">
     <button class="swatch-btn" id="rightSwatch" aria-label="Change right color"></button>
     <div class="popover" id="rightPopover" role="menu"></div>
     <div class="score" id="rightScore">0</div>
-    <div class="hint" id="rightHint">tap +1 · swipe down −1</div>
   </div>
 
   <div class="center-stack">
@@ -330,8 +312,6 @@
     rightSwatch: document.getElementById("rightSwatch"),
     leftPop:     document.getElementById("leftPopover"),
     rightPop:    document.getElementById("rightPopover"),
-    leftHint:    document.getElementById("leftHint"),
-    rightHint:   document.getElementById("rightHint"),
     timerBtn:    document.getElementById("timerBtn"),
     timerText:   document.getElementById("timerText"),
     vsBtn:       document.getElementById("vsBtn"),
@@ -402,12 +382,10 @@
 
       if (dy > SWIPE_THRESHOLD && ay > ax) {
         state[side].score = clamp(state[side].score - 1);
-        hideHint(side);
         render();
         saveState();
       } else if (!moved) {
         state[side].score = clamp(state[side].score + 1);
-        hideHint(side);
         render();
         saveState();
       }
@@ -419,10 +397,6 @@
       pointerStart = null;
       elSide.classList.remove("pressed");
     });
-  }
-
-  function hideHint(side) {
-    (side === "left" ? els.leftHint : els.rightHint).classList.add("hidden");
   }
 
   setupSide("left",  els.leftSide);
