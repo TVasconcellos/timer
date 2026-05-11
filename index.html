@@ -12,10 +12,16 @@
 
 <!-- Icons -->
 <link rel="icon" type="image/png" href="https://tvasconcellos.github.io/timer/icons/favicon.png" />
+<!-- iOS: multiple sizes for better compatibility across devices -->
 <link rel="apple-touch-icon" href="https://tvasconcellos.github.io/timer/icons/icon-180.png" />
+<link rel="apple-touch-icon" sizes="120x120" href="https://tvasconcellos.github.io/timer/icons/icon-180.png" />
+<link rel="apple-touch-icon" sizes="152x152" href="https://tvasconcellos.github.io/timer/icons/icon-180.png" />
+<link rel="apple-touch-icon" sizes="167x167" href="https://tvasconcellos.github.io/timer/icons/icon-180.png" />
+<link rel="apple-touch-icon" sizes="180x180" href="https://tvasconcellos.github.io/timer/icons/icon-180.png" />
+<link rel="apple-touch-icon-precomposed" href="https://tvasconcellos.github.io/timer/icons/icon-180.png" />
 
 <!-- iOS standalone app name when added to home screen -->
-<meta name="apple-mobile-web-app-title" content="Score" />
+<meta name="apple-mobile-web-app-title" content="Unreal Score" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 
 <title>Unreal Score</title>
@@ -55,17 +61,7 @@
     transform-origin: center center;
   }
 
-  /* CSS-rotation fallback for iOS portrait when fullscreen API isn't available */
-  body.force-landscape .app {
-    transform: rotate(90deg);
-    width: 100vh;
-    height: 100vw;
-    top: 50%;
-    left: 50%;
-    margin-top: calc(-50vw);
-    margin-left: calc(-50vh);
-    inset: auto;
-  }
+  /* CSS-rotation fallback removed — iOS users get a "rotate your phone" hint instead */
 
   .side {
     flex: 1;
@@ -232,34 +228,6 @@
   .popover .chip:active { transform: scale(0.9); }
   .popover .chip.active { border-color: #1f2430; }
 
-  /* fullscreen button — only on portrait mobile */
-  .fs-btn {
-    position: fixed;
-    bottom: 18px;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 30;
-    background: rgba(255,255,255,0.95);
-    color: #1f2430;
-    border: none;
-    padding: 12px 22px;
-    border-radius: 999px;
-    font-size: 14px;
-    font-weight: 700;
-    cursor: pointer;
-    display: none;
-    align-items: center;
-    gap: 8px;
-    box-shadow: 0 4px 14px rgba(0,0,0,0.25);
-    transition: transform 0.1s ease;
-  }
-  .fs-btn:active { transform: translateX(-50%) scale(0.95); }
-  .fs-btn svg { width: 16px; height: 16px; }
-
-  @media (orientation: portrait) {
-    body:not(.force-landscape) .fs-btn { display: inline-flex; }
-  }
-
   /* hint */
   .hint {
     position: absolute;
@@ -277,10 +245,10 @@
   .hint.hidden { opacity: 0; }
 
   @media (orientation: portrait) {
-    body:not(.force-landscape) .side .score { font-size: clamp(140px, 32vmin, 280px); }
-    body:not(.force-landscape) .timer { font-size: 16px; padding: 7px 14px; }
-    body:not(.force-landscape) .vs-btn { width: 48px; height: 48px; font-size: 14px; }
-    body:not(.force-landscape) .swatch-btn { width: 40px; height: 40px; }
+    .side .score { font-size: clamp(140px, 32vmin, 280px); }
+    .timer { font-size: 16px; padding: 7px 14px; }
+    .vs-btn { width: 48px; height: 48px; font-size: 14px; }
+    .swatch-btn { width: 40px; height: 40px; }
   }
 </style>
 </head>
@@ -311,13 +279,6 @@
     <button class="vs-btn" id="vsBtn" aria-label="Reset both scores">VS</button>
   </div>
 </div>
-
-<button class="fs-btn" id="fsBtn" aria-label="Enter fullscreen landscape">
-  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" stroke="#1f2430" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-  </svg>
-  <span>Fullscreen</span>
-</button>
 
 <script>
   const COLORS = [
@@ -374,7 +335,6 @@
     timerBtn:    document.getElementById("timerBtn"),
     timerText:   document.getElementById("timerText"),
     vsBtn:       document.getElementById("vsBtn"),
-    fsBtn:       document.getElementById("fsBtn"),
     app:         document.querySelector(".app")
   };
 
@@ -595,86 +555,6 @@
 
   setInterval(renderTimer, 250);
 
-  // ---------- fullscreen + landscape ----------
-  function isPortrait() {
-    return window.matchMedia("(orientation: portrait)").matches;
-  }
-
-  async function enterFullscreenLandscape() {
-    const docEl = document.documentElement;
-
-    // try real fullscreen first
-    try {
-      if (docEl.requestFullscreen) {
-        await docEl.requestFullscreen();
-      } else if (docEl.webkitRequestFullscreen) {
-        await docEl.webkitRequestFullscreen();
-      }
-    } catch (e) {
-      // ignore — we'll still try the CSS fallback
-    }
-
-    // try to lock orientation (Android Chrome supports, iOS does not)
-    let lockWorked = false;
-    try {
-      if (screen.orientation && screen.orientation.lock) {
-        await screen.orientation.lock("landscape");
-        lockWorked = true;
-      }
-    } catch (e) {
-      lockWorked = false;
-    }
-
-    // if orientation lock failed and we're still portrait, rotate via CSS
-    if (!lockWorked && isPortrait()) {
-      document.body.classList.add("force-landscape");
-    }
-
-    updateFsButton();
-  }
-
-  function exitFullscreenLandscape() {
-    if (document.fullscreenElement && document.exitFullscreen) {
-      document.exitFullscreen().catch(() => {});
-    } else if (document.webkitFullscreenElement && document.webkitExitFullscreen) {
-      document.webkitExitFullscreen();
-    }
-    try {
-      if (screen.orientation && screen.orientation.unlock) {
-        screen.orientation.unlock();
-      }
-    } catch (e) {}
-    document.body.classList.remove("force-landscape");
-    updateFsButton();
-  }
-
-  function isFullscreenish() {
-    return !!(document.fullscreenElement || document.webkitFullscreenElement) ||
-           document.body.classList.contains("force-landscape");
-  }
-
-  function updateFsButton() {
-    const fsLabel = els.fsBtn.querySelector("span");
-    fsLabel.textContent = isFullscreenish() ? "Exit" : "Fullscreen";
-  }
-
-  els.fsBtn.addEventListener("click", (e) => {
-    e.stopPropagation();
-    if (isFullscreenish()) exitFullscreenLandscape();
-    else enterFullscreenLandscape();
-  });
-
-  document.addEventListener("fullscreenchange", updateFsButton);
-  document.addEventListener("webkitfullscreenchange", updateFsButton);
-
-  // if device rotates to landscape naturally, drop the CSS rotation
-  window.addEventListener("resize", () => {
-    if (!isPortrait() && document.body.classList.contains("force-landscape")) {
-      document.body.classList.remove("force-landscape");
-      updateFsButton();
-    }
-  });
-
   // ---------- misc ----------
   document.addEventListener("contextmenu", (e) => e.preventDefault());
 
@@ -693,7 +573,6 @@
   loadState();
   render();
   renderTimer();
-  updateFsButton();
 </script>
 </body>
 </html>
